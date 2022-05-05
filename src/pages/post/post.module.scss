@@ -1,1 +1,47 @@
-// TODO
+.content {
+  margin-bottom: 5rem;
+  > img {
+    width: 100%;
+    margin-bottom: 5rem;
+    height: 25rem;
+    object-fit: cover;
+  }
+  article {
+    h1 {
+      margin-bottom: 1.5rem;
+    }
+
+    .flexInfo {
+      display: flex;
+      gap: 1.5rem;
+      > div {
+        display: flex;
+        gap: 0.5rem;
+        align-items: center;
+      }
+      p,
+      time {
+        font-size: 0.875rem;
+      }
+
+      svg {
+        width: 1.25rem;
+        height: 1.25rem;
+      }
+    }
+
+    .body {
+      h2 {
+        margin: 4rem 0 3rem;
+      }
+
+      p + p,
+      li {
+        margin-top: 2rem;
+      }
+    }
+  }
+  a {
+    color: var(--highlight);
+  }
+}

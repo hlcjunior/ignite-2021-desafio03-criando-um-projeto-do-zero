@@ -1,4 +1,8 @@
 import { GetStaticProps } from 'next';
+import { format } from 'date-fns';
+import ptBR from 'date-fns/locale/pt-BR';
+
+import Link from 'next/link';
 import Head from 'next/head';
 
 import { getPrismicClient } from '../services/prismic';
@@ -7,6 +11,7 @@ import commonStyles from '../styles/common.module.scss';
 import styles from './home.module.scss';
 
 import { FiCalendar, FiUser } from 'react-icons/fi';
+import { useState } from 'react';
 
 interface Post {
   uid?: string;
@@ -28,6 +33,19 @@ interface HomeProps {
 }
 
 export default function Home({ postsPagination }: HomeProps) {
+  const [posts, setPosts] = useState(postsPagination.results);
+  const [morePosts, setMorePosts] = useState(postsPagination.next_page);
+
+  async function handleMorePosts(): Promise<void> {
+    const newPost = await fetch(postsPagination.next_page);
+    const { next_page, results: newPosts } = await newPost.json();
+
+    const newCurrentPosts = [...posts];
+    const allPosts = newCurrentPosts.concat(newPosts);
+    setPosts(allPosts);
+    setMorePosts(next_page);
+  }
+
   return (
     <>
       <Head>
@@ -40,51 +58,67 @@ export default function Home({ postsPagination }: HomeProps) {
             src="/images/logo.svg"
             alt="logo"
           />
-          <div className={styles.post}>
-            <a href="#">Como utilizar Hooks</a>
-            <h2>Pensando em sincronização em vez de ciclos de vida.</h2>
-            <div>
-              <span>
-                <FiCalendar size={20} />
-                15 Mar 2021
-              </span>
-              <span>
-                <FiUser size={20} />
-                Hudson de Carvalho
-              </span>
-            </div>
-          </div>
+          {posts.map(post => {
+            return (
+              <div key={post.uid} className={styles.post}>
+                <Link href={`/post/${post.uid}`}>
+                  <a>{post.data.title}</a>
+                </Link>
 
-          <div className={styles.post}>
-            <a href="#">Criando um app CRA do zero</a>
-            <h2>
-              Tudo sobre como criar a sua primeira aplicação utilizando Create
-              React App
-            </h2>
-            <div>
-              <span>
-                <FiCalendar size={20} />
-                19 Abr 2021
-              </span>
-              <span>
-                <FiUser size={20} />
-                João da Silva
-              </span>
-            </div>
-          </div>
+                <h2>{post.data.subtitle}</h2>
 
-          <a className={styles.morePosts} href="#">
-            Carregar mais posts
-          </a>
+                <div>
+                  <span>
+                    <FiCalendar size={20} />
+                    <time>
+                      {format(new Date(post.first_publication_date), 'PP', {
+                        locale: ptBR,
+                      })}
+                    </time>
+                  </span>
+                  <span>
+                    <FiUser size={20} />
+                    <p>{post.data.author}</p>
+                  </span>
+                </div>
+              </div>
+            );
+          })}
+
+          {!!morePosts && (
+            <button
+              onClick={handleMorePosts}
+              className={styles.morePosts}
+              type="button"
+            >
+              Carregar mais posts
+            </button>
+          )}
         </section>
       </main>
     </>
   );
 }
 
-// export const getStaticProps = async () => {
-//   // const prismic = getPrismicClient({});
-//   // const postsResponse = await prismic.getByType(TODO);
+export const getStaticProps = async () => {
+  const prismic = getPrismicClient({});
+  const postsResponse = await prismic.getByType('post', {
+    orderings: ['document.first_publication_date desc'],
+    pageSize: 1,
+  });
+  const posts = postsResponse.results.map(post => {
+    return {
+      ...post,
+    };
+  });
 
-//   // TODO
-// };
+  return {
+    props: {
+      postsPagination: {
+        next_page: postsResponse.next_page,
+        results: posts,
+      },
+    },
+    //revalidate: 60 * 60 * 24,
+  };
+};
